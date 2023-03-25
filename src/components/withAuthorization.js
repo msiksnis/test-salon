@@ -1,7 +1,14 @@
-import { usersRoles } from "@/utils/roles";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { client } from "../../lib/sanity.client";
+
+async function fetchUserRoles() {
+  const query = `*[_type == "userRole"]{email,
+  "role": role->name}`;
+  const userRoles = await client.fetch(query);
+  return userRoles;
+}
 
 export default function withAuthorization(WrappedComponent, allowedRoles) {
   const WithAuthorizationWrapper = (props) => {
@@ -12,21 +19,26 @@ export default function withAuthorization(WrappedComponent, allowedRoles) {
 
     useEffect(() => {
       if (status === "authenticated") {
-        const userRoleObj = usersRoles.find(
-          (user) => user.email === session.user.email
-        );
-        const currentRole = userRoleObj ? userRoleObj.role : "guest";
-        setUserRole(currentRole);
-
-        if (!allowedRoles.includes(currentRole)) {
-          setMessage(
-            <>
-              <div className="text-2xl text-slate-900 flex justify-center items-center ">
-                Sorry, this part of the application is only for the admin.
-              </div>
-            </>
+        fetchUserRoles().then((usersRoles) => {
+          console.log("Fetched User Roles:", usersRoles);
+          const userRoleObj = usersRoles.find(
+            (user) => user.email === session.user.email
           );
-        }
+          const currentRole = userRoleObj ? userRoleObj.role : "guest";
+          console.log("Current Role:", currentRole);
+          setUserRole(currentRole);
+          console.log("Allowed Roles:", allowedRoles);
+
+          if (!allowedRoles.includes(currentRole)) {
+            setMessage(
+              <>
+                <div className="text-2xl text-slate-900 flex justify-center items-center ">
+                  Sorry, this part of the application is only for the admin.
+                </div>
+              </>
+            );
+          }
+        });
       }
     }, [session, status, router]);
 

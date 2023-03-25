@@ -1,5 +1,5 @@
-import withAuthorization from "@/components/withAuthorization";
 import { signIn, signOut, useSession } from "next-auth/react";
+import withAuthorization from "../../components/withAuthorization";
 
 function DashboardPage() {
   const { data: session } = useSession({ required: true });
