@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { SanityAdapter, SanityCredentials } from "next-auth-sanity";
+import { client } from "../../../../utils/sanityAuth";
 
 export default NextAuth({
   providers: [
@@ -7,9 +9,9 @@ export default NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-    // More providers here
   ],
-  secret: process.env.JWT_SECRET,
-
-  // Add any NextAuth.js options here
+  session: {
+    strategy: "jwt",
+  },
+  adapter: SanityAdapter(client),
 });
