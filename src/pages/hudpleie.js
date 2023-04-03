@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { fetchHudpleie } from "../../utils/fetchHudpleie";
+import { fetchTreatments } from "../../utils/fetchTreatments";
 import Hudpleie from "../components/Hudpleie";
 
 export default function HudpleiePage({ hudpleie }) {
@@ -8,7 +8,7 @@ export default function HudpleiePage({ hudpleie }) {
       <Head>
         <title> Test Atelier Beauté | Hudpleie</title>
         <meta name="description" content="Atelier Beauté Oslo. Hudpleie" />
-        <meta name="keywords" content="hudpleie" />
+        <meta name="keywords" content="hudpleie, skin care" />
       </Head>
       <Hudpleie hudpleie={hudpleie} />
     </>
@@ -16,7 +16,7 @@ export default function HudpleiePage({ hudpleie }) {
 }
 
 export async function getStaticProps() {
-  const hudpleie = await fetchHudpleie();
+  const hudpleie = await fetchTreatments("hudpleie");
 
   return {
     props: {

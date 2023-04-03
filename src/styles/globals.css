@@ -7,3 +7,41 @@
     @apply font-poppins;
   }
 }
+
+/* styles/globals.css */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scaleY(0.75);
+  }
+}
+
+.pilar {
+  animation: pulse 1.2s ease-in-out infinite;
+  transform-origin: bottom; /* Make sure the pillars scale from the bottom */
+}
+
+.pilar:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.pilar:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.pilar:nth-child(4) {
+  animation-delay: 0.9s;
+}
+
+.shadow-box {
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+}
+
+.shadow-4 {
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+}

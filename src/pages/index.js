@@ -1,12 +1,11 @@
-import { useSession } from "next-auth/react";
+import DraggableHudpleie from "../components/Dashboard/Treatments/Hudpleie/DraggableHudpleie";
+
+// import OneColumn from "../components/TestDraggable/OneColumn";
 
 export default function Home() {
-  const { data: session } = useSession();
-
   return (
-    <main className="text-xl">
-      <h1>Main Page</h1>
-      {session ? <div>Logged in as: {session.user.email}</div> : ""}
+    <main className="bg-gray-50 min-h-screen py-20">
+      <DraggableHudpleie />
     </main>
   );
 }

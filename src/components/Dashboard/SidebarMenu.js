@@ -1,14 +1,13 @@
-import { Bars3Icon, ArrowLeftIcon } from "@heroicons/react/24/solid";
-import { BeakerIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 
 const menuItems = [
-  { text: "Handpleie", icon: BeakerIcon },
-  { text: "Futpleie", icon: BeakerIcon },
-  { text: "Hudpleie", icon: BeakerIcon },
-  { text: "Vipper & Bryn", icon: BeakerIcon },
-  { text: "Gavekort", icon: BeakerIcon },
-  { text: "Klippekort", icon: BeakerIcon },
+  { text: "Handpleie", shortText: "HA..." },
+  { text: "Futpleie", shortText: "FU..." },
+  { text: "Hudpleie", shortText: "HU..." },
+  { text: "Vipper & Bryn", shortText: "VB..." },
+  { text: "Gavekort", shortText: "GK..." },
+  { text: "Klippekort", shortText: "KK..." },
 ];
 
 export default function SidebarMenu({
@@ -18,11 +17,11 @@ export default function SidebarMenu({
 }) {
   return (
     <div
-      className={`h-screen fixed left-0 py-24 bg-white text-slate-900 border-r border-slate-900 px-4 transition-all duration-300 ${
+      className={`h-screen fixed pt-24 left-0 top-0 bottom-0 bg-white text-slate-900 border-r border-slate-900 transition-all duration-300 ${
         isExpanded ? "w-64" : "w-20"
       }`}
     >
-      <div className="flex justify-between">
+      <div className="flex justify-between border-b border-slate-900 pb-4">
         {!isExpanded && (
           <Image
             src="/icons/grid_dots.svg"
@@ -45,7 +44,7 @@ export default function SidebarMenu({
             />
             <ArrowLeftIcon
               onClick={toggleMenu}
-              className="h-9 cursor-pointer"
+              className="h-9 cursor-pointer px-4"
             />
           </>
         )}
@@ -55,7 +54,7 @@ export default function SidebarMenu({
           isExpanded ? "" : "items-center"
         }`}
       >
-        {menuItems.map(({ text, icon: Icon }) => (
+        {menuItems.map(({ text, shortText }) => (
           <div
             key={text}
             onClick={() => onMenuItemClick(text)}
@@ -63,8 +62,7 @@ export default function SidebarMenu({
               isExpanded ? "pl-8" : ""
             }`}
           >
-            <Icon className="h-6" />
-            <div className={isExpanded ? "" : "hidden"}>{text}</div>
+            <div>{isExpanded ? text : shortText}</div>
           </div>
         ))}
       </div>
