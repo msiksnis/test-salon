@@ -1,17 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { Motion, spring } from "react-motion";
 import { fetchTreatments } from "../../../../../utils/fetchTreatments";
 import PulsingLoader from "../../../PulsingLoader";
 import { TbDragDrop2 as DragDropIcon } from "react-icons/tb";
 import { GoPlus } from "react-icons/go";
 
-const height = 90;
 const springSetting1 = { stiffness: 180, damping: 10 };
 const springSetting2 = { stiffness: 150, damping: 15 };
+const gap = 20;
 
 const clamp = (n, min, max) => Math.max(Math.min(n, max), min);
 
-export default function DraggableHudpleie() {
+export default function DraggableHudpleieVTwo() {
   const [mouse, setMouse] = useState([0, 0]);
   const [delta, setDelta] = useState([0, 0]);
   const [lastPress, setLastPress] = useState(null);
@@ -19,10 +25,25 @@ export default function DraggableHudpleie() {
   const [order, setOrder] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [itemHeights, setItemHeights] = useState([]);
+  const [totalHeight, setTotalHeight] = useState(0);
 
   const toggleModal = () => {
     setShowModal(!showModal);
   };
+
+  useEffect(() => {
+    const newTotalHeight = order.reduce((heightAccumulator, item, index) => {
+      const titleHeight = item.title.split("\n").length * 20;
+      const descriptionHeight = item.shortDescription
+        ? item.shortDescription.split("\n").length * 16
+        : 0;
+
+      return heightAccumulator + titleHeight + descriptionHeight + 40;
+    }, 0);
+
+    setTotalHeight(newTotalHeight);
+  }, [order]);
 
   useEffect(() => {
     async function fetchData() {
@@ -53,7 +74,7 @@ export default function DraggableHudpleie() {
       if (isPressed) {
         const newMouse = [pageX - delta[0], pageY - delta[1]];
         const rowTo = clamp(
-          Math.floor((newMouse[1] + height / 2) / height),
+          Math.floor((newMouse[1] + itemHeights[lastPress] / 2) / gap),
           0,
           100
         );
@@ -64,7 +85,7 @@ export default function DraggableHudpleie() {
         setOrder(newRowOrder);
       }
     },
-    [isPressed, delta, order, lastPress]
+    [isPressed, delta, order, lastPress, itemHeights]
   );
 
   const reinsert = (array, from, to) => {
@@ -74,6 +95,31 @@ export default function DraggableHudpleie() {
     newArray.splice(from, 1);
     newArray.splice(to, 0, val);
     return newArray;
+  };
+
+  const setItemHeight = (index, height) => {
+    setItemHeights((prevHeights) => {
+      const newHeights = [...prevHeights];
+      newHeights[index] = height;
+      return newHeights;
+    });
+  };
+
+  const itemRefs = useRef([]);
+
+  useLayoutEffect(() => {
+    itemRefs.current = itemRefs.current.slice(0, order.length);
+
+    itemRefs.current.forEach((ref, index) => {
+      if (ref) {
+        const { height } = ref.getBoundingClientRect();
+        setItemHeight(index, height);
+      }
+    });
+  }, [order]);
+
+  const calculateYPosition = (index) => {
+    return itemHeights.slice(0, index).reduce((acc, cur) => acc + cur + gap, 0);
   };
 
   useEffect(() => {
@@ -86,7 +132,7 @@ export default function DraggableHudpleie() {
   }, [handleMouseMove, handleMouseUp]);
 
   return (
-    <div className="relative md:mx-14 shadow-box rounded-md bg-white">
+    <div className="relative mx-14 shadow-box rounded-md bg-white">
       <div className="flex justify-between items-center mr-10">
         <h1 className="text-2xl p-10 text-gray-700 md:text-4xl">Hudpleie</h1>
         <button
@@ -99,7 +145,7 @@ export default function DraggableHudpleie() {
       <h2 className="text-2xl my-10 mx-10">Hudpleie Dame</h2>
       <div
         className="flex flex-col items-center"
-        style={{ minHeight: `${order.length * height}px` }}
+        style={{ minHeight: `${totalHeight + 80}px` }}
       >
         {loading ? (
           <PulsingLoader />
@@ -123,7 +169,7 @@ export default function DraggableHudpleie() {
                   scale: spring(1.02, springSetting1),
                 };
               } else {
-                y = height * index;
+                y = calculateYPosition(index);
                 style = {
                   translateY: spring(y, springSetting2),
                   scale: spring(1, springSetting1),
@@ -134,12 +180,13 @@ export default function DraggableHudpleie() {
                 <Motion key={item._id} style={style}>
                   {({ translateY, scale }) => (
                     <div
+                      ref={(el) => (itemRefs.current[index] = el)}
                       onMouseDown={handleMouseDown.bind(null, item._id, [0, y])}
                       className={`absolute bg-white group w-full shadow-4 py-2 select-none cursor-grab${
                         isActive ? "cursor-grabbing bg-gray-50" : ""
                       }`}
                       style={{
-                        WebkitTransform: `translate3d(${translateY}px, 0) scale(${scale})`,
+                        WebkitTransform: `translate3d(0, ${translateY}px, 0) scale(${scale})`,
                         transform: `translate3d(0, ${translateY}px, 0) scale(${scale})`,
                         zIndex: item === lastPress ? 99 : index,
                         width: "calc(100% - 80px)",
@@ -151,12 +198,12 @@ export default function DraggableHudpleie() {
                         <div className="flex flex-col relative">
                           <DragDropIcon className="absolute left-0 top-1/2 -translate-y-1/2 mr-4 h-6 w-6 opacity-0 group-hover:opacity-80 transition-opacity duration-200" />
                           <div className="flex justify-between pl-10 w-full">
-                            <div className="truncate">{item.title}</div>
+                            <div className="">{item.title}</div>
                             <h3 className="whitespace-nowrap font-normal">
                               {item.price} kr
                             </h3>
                           </div>
-                          <p className="truncate pt-1 px-10 text-sm opacity-60">
+                          <p className="pt-1 px-10 text-sm opacity-60">
                             {item.shortDescription}
                           </p>
                         </div>
