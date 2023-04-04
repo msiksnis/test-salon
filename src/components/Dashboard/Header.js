@@ -18,6 +18,7 @@ export default function Header() {
           src="/logo/logo_white.png"
           width={250}
           height={40}
+          alt="logo"
           className="hidden md:block object-cover"
         />
         <h1 className="text-2xl font-extralight italic mb-0.5">Dashboard</h1>
