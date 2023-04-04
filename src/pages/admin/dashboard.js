@@ -41,7 +41,10 @@ function DashboardPage() {
         (module) => {
           const Component = module.default;
           Component.displayName = selectedMenuItem;
-          return (props) => <Component {...props} hudpleie={hudpleieData} />;
+          return function WrappedComponent(props) {
+            WrappedComponent.displayName = `Wrapped${selectedMenuItem}`;
+            return <Component {...props} hudpleie={hudpleieData} />;
+          };
         }
       ),
     {
