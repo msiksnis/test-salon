@@ -40,6 +40,7 @@ function DashboardPage() {
       import(`../../components/Dashboard/Treatments/${selectedMenuItem}`).then(
         (module) => {
           const Component = module.default;
+          Component.displayName = selectedMenuItem;
           return (props) => <Component {...props} hudpleie={hudpleieData} />;
         }
       ),

@@ -14,6 +14,7 @@ export default function Hudpleie({ hudpleie }) {
             src="/images/hudpleie/hudpleie.jpeg"
             width={500}
             height={800}
+            alt="hudpleie"
           />
         </div>
         <div className="w-full bg-gradient-to-tr from-[#ffeaeabc] to-[#f2ecec43] pt-4 pb-10 md:w-2/3 md:pt-14">
