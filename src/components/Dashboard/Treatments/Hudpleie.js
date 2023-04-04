@@ -1,115 +1,264 @@
-// components/Dashboard/Treatments/Hudpleie.js
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { fetchTreatments } from "../../../../utils/fetchTreatments";
+import PulsingLoader from "../../PulsingLoader";
 import { TbDragDrop2 as DragDropIcon } from "react-icons/tb";
 import { GoPlus } from "react-icons/go";
-import DraggableTreatment from "./DraggableTreatment";
-import DroppableContainer from "./DroppableContainer";
-import AddTreatmentModal from "../../AddTreatmentModal";
+import { toast } from "react-toastify";
 
-export default function Hudpleie({ hudpleie }) {
-  const [treatments, setTreatments] = useState(hudpleie);
-  const [draggedTreatmentIndex, setDraggedTreatmentIndex] = useState(null);
+const gap = 30;
+const clamp = (n, min, max) => Math.max(Math.min(n, max), min);
+
+export default function DraggableFramerHudpleie() {
+  const [mouse, setMouse] = useState([0, 0]);
+  const [delta, setDelta] = useState([0, 0]);
+  const [lastPress, setLastPress] = useState(null);
+  const [isPressed, setIsPressed] = useState(false);
+  const [order, setOrder] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [containerHeight, setContainerHeight] = useState(0);
   const [showModal, setShowModal] = useState(false);
+
+  const itemRefs = useRef(new Map());
 
   const toggleModal = () => {
     setShowModal(!showModal);
   };
 
-  const handleDrop = (droppedTreatmentId, droppedIndex) => {
-    const draggedTreatmentIndex = treatments.findIndex(
-      (treatment) => treatment._id === droppedTreatmentId
-    );
-
-    if (draggedTreatmentIndex !== droppedIndex) {
-      const updatedTreatments = [...treatments];
-      const [draggedTreatment] = updatedTreatments.splice(
-        draggedTreatmentIndex,
-        1
-      );
-
-      const insertIndex = Math.min(droppedIndex, updatedTreatments.length);
-      updatedTreatments.splice(insertIndex, 0, draggedTreatment);
-      setTreatments(updatedTreatments);
+  useEffect(() => {
+    async function fetchData() {
+      const items = await fetchTreatments("hudpleie");
+      setOrder(items);
+      setLoading(false);
     }
+    fetchData();
+  }, []);
+
+  const calculateContainerHeight = () => {
+    let totalHeight = 0;
+    const itemIds = Array.from(itemRefs.current.keys());
+    for (let i = 0; i < itemIds.length; i++) {
+      const id = itemIds[i];
+      const item = itemRefs.current.get(id);
+      if (item) {
+        totalHeight += item.offsetHeight + gap;
+      }
+    }
+    return totalHeight;
   };
 
+  useEffect(() => {
+    setContainerHeight(calculateContainerHeight());
+  }, [order]);
+
+  const getTotalHeight = () => {
+    let totalHeight = 0;
+    const itemIds = Array.from(itemRefs.current.keys());
+    for (let i = 0; i < itemIds.length; i++) {
+      const id = itemIds[i];
+      const item = itemRefs.current.get(id);
+      if (item) {
+        totalHeight += item.offsetHeight;
+      }
+    }
+    return totalHeight;
+  };
+
+  const handleMouseDown = useCallback(
+    (key, [pressX, pressY], { pageX, pageY }) => {
+      setLastPress(key);
+      setIsPressed(true);
+      setDelta([pageX - pressX, pageY - pressY]);
+      setMouse([pressX, pressY]);
+    },
+    []
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsPressed(false);
+    setDelta([0, 0]);
+  }, []);
+
+  const handleMouseMove = useCallback(
+    ({ pageX, pageY }) => {
+      if (isPressed) {
+        const newMouse = [pageX - delta[0], pageY - delta[1]];
+
+        let rowTo = -1;
+        const draggedItemHeight =
+          itemRefs.current.get(lastPress)?.offsetHeight || 0;
+        const draggedItemMiddleY = newMouse[1] + draggedItemHeight / 2;
+        const itemIds = Array.from(itemRefs.current.keys());
+        for (let i = 0; i < itemIds.length; i++) {
+          const id = itemIds[i];
+          const item = itemRefs.current.get(id);
+          if (item && item !== itemRefs.current.get(lastPress)) {
+            const itemY = getYPosition(i);
+            const nextItemY =
+              i < itemIds.length - 1
+                ? getYPosition(i + 1)
+                : Number.MAX_SAFE_INTEGER;
+            if (draggedItemMiddleY > itemY && draggedItemMiddleY <= nextItemY) {
+              rowTo = i;
+              break;
+            }
+          }
+        }
+
+        rowTo = rowTo === -1 ? order.length - 1 : rowTo;
+
+        const rowFrom = order.findIndex((item) => item._id === lastPress);
+        const newRowOrder = reinsert(order, rowFrom, rowTo);
+
+        setMouse(newMouse);
+        setOrder(newRowOrder);
+      }
+    },
+    [isPressed, delta, order, lastPress]
+  );
+
+  const getYPosition = (index) => {
+    let totalHeight = 0;
+    for (let i = 0; i < index; i++) {
+      const id = order[i]._id;
+      const item = itemRefs.current.get(id);
+      if (item) {
+        totalHeight += item.offsetHeight + gap;
+      }
+    }
+    return totalHeight;
+  };
+
+  const reinsert = (array, from, to) => {
+    if (from === to) return array;
+    const newArray = array.slice(0);
+    const val = newArray[from];
+    newArray.splice(from, 1);
+    newArray.splice(to, 0, val);
+    return newArray;
+  };
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
   const handleSaveChanges = async () => {
-    const treatmentsWithUpdatedOrder = treatments.map((treatment, index) => ({
-      ...treatment,
-      order: index,
-    }));
+    try {
+      const response = await fetch("/api/save-treatment-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ treatments: order }),
+      });
 
-    const response = await fetch("/api/save-treatment-order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ treatments: treatmentsWithUpdatedOrder }),
-    });
+      const data = await response.json();
 
-    if (response.ok) {
-      alert("Changes saved successfully");
-    } else {
-      alert("Error saving changes");
+      if (response.ok) {
+        toast.success("Treatments order saved successfully");
+      } else {
+        toast.error("Error saving treatments order: " + data.message);
+      }
+    } catch (error) {
+      toast.error("Error saving treatments order: " + error.message);
     }
   };
 
   return (
-    <>
-      {showModal ? <AddTreatmentModal onClose={toggleModal} /> : null}
-      <div className="mx-10 mt-32 shadow-box rounded-md">
-        <div className="flex justify-between items-center mr-10">
-          <h1 className="text-2xl p-10 text-gray-700 md:text-4xl">Hudpleie</h1>
-          <button
-            className="flex items-center uppercase border border-slate-900 rounded px-10 py-2 bg-slate-900 text-white hover:bg-white hover:text-slate-900 transition-all duration-300 shadow"
-            onClick={toggleModal}
-          >
-            <GoPlus className="h-[18px] w-[18px] mr-2" /> Add New
-          </button>
-        </div>
-        <div className="flex flex-col">
-          <h2 className="p-8 text-xl md:px-10 md:text-2xl">Hudpleie Dame</h2>
-          <div className="w-full">
-            {treatments.map((treatment, index) => {
-              const { title, price, _id, shortDescription, directLink } =
-                treatment;
-              return (
-                <DroppableContainer
-                  key={treatment._id}
-                  index={index}
-                  onDrop={handleDrop}
-                >
-                  <DraggableTreatment
-                    id={treatment._id}
-                    treatment={treatment}
-                    index={index}
-                    setDraggedTreatmentIndex={setDraggedTreatmentIndex}
-                    className="mb-5"
+    <div className="relative md:mx-14 md:mt-32 md:mb-20 shadow-box rounded-md bg-white">
+      <div className="flex justify-between items-center mr-10">
+        <h1 className="text-2xl p-10 text-gray-700 md:text-4xl">Hudpleie</h1>
+        <button
+          className="flex items-center uppercase border border-slate-900 rounded px-10 py-2 bg-slate-900 text-white hover:bg-white hover:text-slate-900 transition-all duration-300 shadow"
+          onClick={toggleModal}
+        >
+          <GoPlus className="h-[18px] w-[18px] mr-2" /> Add New
+        </button>
+      </div>
+      <h2 className="text-2xl my-10 mx-10">Hudpleie Dame</h2>
+      <div
+        className="flex flex-col items-center"
+        style={{ minHeight: `${containerHeight}px` }}
+      >
+        {loading ? (
+          <PulsingLoader />
+        ) : (
+          <AnimatePresence>
+            {order
+              .filter((item) => item && item._id)
+              .map((item, index) => {
+                let style;
+                let y;
+                const isActive =
+                  item &&
+                  item._id &&
+                  lastPress &&
+                  item._id === lastPress &&
+                  isPressed;
+
+                if (isActive) {
+                  [, y] = mouse;
+                  style = {
+                    y: y,
+                    scale: 1.02,
+                  };
+                } else {
+                  y = getYPosition(index);
+                  style = {
+                    y: y,
+                    scale: 1,
+                  };
+                }
+
+                return (
+                  <motion.div
+                    ref={(el) => {
+                      if (el) {
+                        itemRefs.current.set(item._id, el);
+                      } else {
+                        itemRefs.current.delete(item._id);
+                      }
+                    }}
+                    key={item._id}
+                    initial={{ y: y, scale: 1 }}
+                    animate={style}
+                    onMouseDown={handleMouseDown.bind(null, item._id, [0, y])}
+                    className={`absolute bg-white group w-full shadow-4 py-2 select-none cursor-grab${
+                      isActive ? " cursor-grabbing bg-yellow-400" : ""
+                    }`}
+                    style={{
+                      zIndex: item === lastPress ? 99 : index,
+                      width: "calc(100% - 80px)",
+                      marginLeft: "40px",
+                      marginRight: "40px",
+                    }}
                   >
-                    <div className="group transition-all duration-200 hover:bg-slate-50">
-                      <div className="shadow-4 pt-5 pb-2 px-10 pl-2">
-                        <div className="flex justify-between">
-                          <div className="flex items-center transition-opacity duration-200">
-                            <DragDropIcon className="mr-2 h-5 w-5 opacity-0 group-hover:opacity-80 transition-opacity duration-200" />
-                            {`${index + 1}. ${title}`}
-                          </div>
-                          <h3 className="whitespace-nowrap pl-6 font-normal opacity-75">
-                            {price} kr
+                    <div className="px-10 pl-2">
+                      <div className="flex flex-col relative">
+                        <DragDropIcon className="absolute left-0 top-1/2 -translate-y-1/2 mr-4 h-6 w-6 opacity-0 group-hover:opacity-80 transition-opacity duration-200" />
+                        <div className="flex justify-between pl-10 w-full">
+                          <div className="truncate">{item.title}</div>
+                          <h3 className="whitespace-nowrap font-normal">
+                            {item.price} kr
                           </h3>
                         </div>
-                        <p className="py-1 text-sm opacity-60">
-                          {shortDescription}
+                        <p className="truncate pt-1 px-10 text-sm opacity-60">
+                          {item.shortDescription}
                         </p>
                       </div>
                     </div>
-                  </DraggableTreatment>
-                </DroppableContainer>
-              );
-            })}
-          </div>
-        </div>
+                  </motion.div>
+                );
+              })}
+          </AnimatePresence>
+        )}
       </div>
-      <div className="px-10 flex justify-center pt-10">
+      <div className="flex justify-center pb-10">
         <button
           onClick={handleSaveChanges}
           className="bg-slate-900 text-white px-14 py-2 mt-4 rounded uppercase border border-slate-900 hover:bg-white hover:text-slate-900 transition-all duration-300 cursor-pointer"
@@ -117,6 +266,6 @@ export default function Hudpleie({ hudpleie }) {
           Save Changes
         </button>
       </div>
-    </>
+    </div>
   );
 }

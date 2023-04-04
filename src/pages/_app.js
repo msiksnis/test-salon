@@ -1,6 +1,8 @@
 import "../styles/globals.css";
 import { SessionProvider } from "next-auth/react";
 import { Poppins } from "next/font/google";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -14,6 +16,7 @@ export default function App({ Component, pageProps, session }) {
       <SessionProvider session={session}>
         <Component {...pageProps} />
       </SessionProvider>
+      <ToastContainer />
     </main>
   );
 }
