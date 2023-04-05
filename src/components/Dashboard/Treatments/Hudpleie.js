@@ -5,6 +5,10 @@ import PulsingLoader from "../../PulsingLoader";
 import { TbDragDrop2 as DragDropIcon } from "react-icons/tb";
 import { GoPlus } from "react-icons/go";
 import { toast } from "react-toastify";
+import { TrashIcon } from "@heroicons/react/24/outline";
+import { HiOutlineTrash } from "react-icons/hi";
+import { CiEdit } from "react-icons/ci";
+import WarningFramerModal from "../../Modals/WarningFramerModal";
 
 const gap = 30;
 const clamp = (n, min, max) => Math.max(Math.min(n, max), min);
@@ -18,6 +22,8 @@ export default function DraggableFramerHudpleie() {
   const [loading, setLoading] = useState(true);
   const [containerHeight, setContainerHeight] = useState(0);
   const [showModal, setShowModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [treatmentToDelete, setTreatmentToDelete] = useState(null);
 
   const itemRefs = useRef(new Map());
 
@@ -65,7 +71,11 @@ export default function DraggableFramerHudpleie() {
   };
 
   const handleMouseDown = useCallback(
-    (key, [pressX, pressY], { pageX, pageY }) => {
+    (key, [pressX, pressY], { pageX, pageY, target }) => {
+      if (target.getAttribute("data-drag-disabled")) {
+        return;
+      }
+
       setLastPress(key);
       setIsPressed(true);
       setDelta([pageX - pressX, pageY - pressY]);
@@ -169,6 +179,32 @@ export default function DraggableFramerHudpleie() {
     }
   };
 
+  const handleDeleteIconClick = (id) => {
+    setTreatmentToDelete(id);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`/api/delete-treatment/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Treatment deleted successfully");
+        // Remove treatment from the order state
+        setOrder(order.filter((item) => item._id !== id));
+      } else {
+        toast.error("Error deleting treatment");
+      }
+    } catch (error) {
+      toast.error("Error deleting treatment: " + error.message);
+    }
+
+    setIsModalOpen(false);
+    setTreatmentToDelete(null);
+  };
+
   return (
     <div className="relative md:mx-14 md:mt-32 md:mb-20 shadow-box rounded-md bg-white">
       <div className="flex justify-between items-center mr-10">
@@ -238,18 +274,27 @@ export default function DraggableFramerHudpleie() {
                       marginRight: "40px",
                     }}
                   >
-                    <div className="px-10 pl-2">
-                      <div className="flex flex-col relative">
-                        <DragDropIcon className="absolute left-0 top-1/2 -translate-y-1/2 mr-4 h-6 w-6 opacity-0 group-hover:opacity-80 transition-opacity duration-200" />
-                        <div className="flex justify-between pl-10 w-full">
-                          <div className="truncate">{item.title}</div>
-                          <h3 className="whitespace-nowrap font-normal">
-                            {item.price} kr
-                          </h3>
-                        </div>
-                        <p className="truncate pt-1 px-10 text-sm opacity-60">
+                    <div className="grid grid-cols-[auto,1fr,auto,auto] items-center gap-4 px-4">
+                      <DragDropIcon className="h-6 w-6 opacity-0 group-hover:opacity-80 transition-opacity duration-300" />
+                      <div className="grid grid-rows-[auto,auto] gap-2">
+                        <div className="truncate">{item.title}</div>
+                        <p className="truncate text-sm opacity-60">
                           {item.shortDescription}
                         </p>
+                      </div>
+                      <h3 className="whitespace-nowrap font-normal">
+                        {item.price} kr
+                      </h3>
+                      <div className="grid grid-rows-2 gap-2 border-l border-gray-400 pl-2">
+                        <CiEdit
+                          data-drag-disabled
+                          className="h-5 w-5 hover:scale-[1.3] transition-all duration-300 hover:text-yellow-600 cursor-pointer"
+                        />
+                        <HiOutlineTrash
+                          data-drag-disabled
+                          onClick={() => handleDeleteIconClick(item._id)}
+                          className="h-5 w-5 hover:scale-[1.3] transition-all duration-300 hover:text-red-600 cursor-pointer"
+                        />
                       </div>
                     </div>
                   </motion.div>
@@ -266,6 +311,11 @@ export default function DraggableFramerHudpleie() {
           Save Changes
         </button>
       </div>
+      <WarningFramerModal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        onDelete={() => handleDelete(treatmentToDelete)}
+      />
     </div>
   );
 }
