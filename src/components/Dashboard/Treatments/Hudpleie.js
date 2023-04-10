@@ -28,6 +28,8 @@ export default function DraggableFramerHudpleie() {
   const [treatments, setTreatments] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTreatment, setSelectedTreatment] = useState(null);
+  const [itemsDame, setItemsDame] = useState([]);
+  const [itemsHerre, setItemsHerre] = useState([]);
 
   const itemRefs = useRef(new Map());
 
@@ -43,6 +45,15 @@ export default function DraggableFramerHudpleie() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const itemsDame = treatments.filter((item) => item.gender === "dame");
+    const itemsHerre = treatments.filter((item) => item.gender === "herre");
+
+    setItemsDame(itemsDame);
+    setItemsHerre(itemsHerre);
+    setLoading(false);
+  }, [treatments]);
 
   const calculateContainerHeight = () => {
     let totalHeight = 0;
@@ -60,19 +71,6 @@ export default function DraggableFramerHudpleie() {
   useEffect(() => {
     setContainerHeight(calculateContainerHeight());
   }, [order]);
-
-  const getTotalHeight = () => {
-    let totalHeight = 0;
-    const itemIds = Array.from(itemRefs.current.keys());
-    for (let i = 0; i < itemIds.length; i++) {
-      const id = itemIds[i];
-      const item = itemRefs.current.get(id);
-      if (item) {
-        totalHeight += item.offsetHeight;
-      }
-    }
-    return totalHeight;
-  };
 
   const handleMouseDown = useCallback(
     (key, [pressX, pressY], { pageX, pageY, target }) => {
@@ -139,12 +137,18 @@ export default function DraggableFramerHudpleie() {
   const getYPosition = (index) => {
     let totalHeight = 0;
     for (let i = 0; i < index; i++) {
-      const id = order[i]._id;
-      const item = itemRefs.current.get(id);
-      if (item) {
-        totalHeight += item.offsetHeight + gap;
+      if (order[i]) {
+        // Check if the object at index i exists
+        const id = order[i]._id;
+        const item = itemRefs.current.get(id);
+        if (item) {
+          totalHeight += item.offsetHeight + gap;
+        }
+      } else {
+        console.error(`The object at index ${i} is undefined.`);
       }
     }
+
     return totalHeight;
   };
 
@@ -238,7 +242,6 @@ export default function DraggableFramerHudpleie() {
         throw new Error(data.message);
       }
 
-      // Fetch updated treatments after successful edit
       const updatedTreatments = await fetchTreatments("hudpleie");
       setTreatments(updatedTreatments);
       setOrder(updatedTreatments);
@@ -260,125 +263,217 @@ export default function DraggableFramerHudpleie() {
           <GoPlus className="h-[18px] w-[18px] mr-2" /> Add New
         </button>
       </div>
-      <h2 className="text-2xl m-10">Hudpleie Dame</h2>
-      <div
-        className="flex flex-col items-cente"
-        style={{ minHeight: `${containerHeight}px` }}
-      >
-        {loading ? (
-          <div className="flex justify-center items-center h-full">
-            <BarLoading />
+      <div>
+        <>
+          <h2 className="text-2xl m-10">Hudpleie Dame</h2>
+          <div
+            className="flex flex-col items-cente"
+            style={{ minHeight: `${containerHeight}px` }}
+          >
+            {loading ? (
+              <div className="flex justify-center items-center h-full">
+                <BarLoading />
+              </div>
+            ) : (
+              <AnimatePresence>
+                {itemsDame
+                  .filter((item) => item && item._id)
+                  .map((item, index) => {
+                    let style;
+                    let y;
+                    const isActive =
+                      item &&
+                      item._id &&
+                      lastPress &&
+                      item._id === lastPress &&
+                      isPressed;
+
+                    if (isActive) {
+                      [, y] = mouse;
+                      style = {
+                        y: y,
+                        scale: 1.02,
+                      };
+                    } else {
+                      y = getYPosition(index);
+                      style = {
+                        y: y,
+                        scale: 1,
+                      };
+                    }
+
+                    return (
+                      <motion.div
+                        ref={(el) => {
+                          if (el) {
+                            itemRefs.current.set(item._id, el);
+                          } else {
+                            itemRefs.current.delete(item._id);
+                          }
+                        }}
+                        key={item._id}
+                        initial={{ y: y, scale: 1 }}
+                        animate={style}
+                        onMouseDown={handleMouseDown.bind(null, item._id, [
+                          0,
+                          y,
+                        ])}
+                        className={`absolute bg-white rounded group w-full shadow-4 hover:bg-[#f3f3f2] transition-colors duration-300 py-1 select-none cursor-grab${
+                          isActive ? "cursor-grabbing" : ""
+                        }`}
+                        style={{
+                          zIndex: item === lastPress ? 99 : index,
+                          width: "calc(100% - 80px)",
+                          marginLeft: "40px",
+                          marginRight: "40px",
+                        }}
+                      >
+                        <div className="grid grid-cols-[auto,1fr,auto,auto] items-center gap-x-4 pl-4 pr-1">
+                          <DragDropIcon className="h-6 w-6 opacity-0 group-hover:opacity-80 transition-opacity duration-300" />
+                          <div className="grid grid-rows-[auto,auto] gap-0">
+                            <div className="truncate">{item.title}</div>
+                            <p className="truncate text-sm opacity-60">
+                              {item.shortDescription}
+                            </p>
+                          </div>
+                          <h3 className="whitespace-nowrap font-normal">
+                            {item.price} kr
+                          </h3>
+                          <div className="grid grid-rows-2 border-l border-gray-400 ">
+                            <Edit
+                              data-drag-disabled
+                              onClick={() => openEditModal(item)}
+                              className="h-9 w-9 p-1.5 ml-1 scale-[0.9] hover:scale-[1.2] transition-all duration-300 hover:text-yellow-600 cursor-pointer"
+                            />
+                            <Delete
+                              data-drag-disabled
+                              onClick={() => handleDeleteIconClick(item._id)}
+                              className="h-9 w-9 p-1.5 ml-1 hover:scale-[1.3] transition-all duration-300 hover:text-red-600 cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+              </AnimatePresence>
+            )}
           </div>
-        ) : (
-          <AnimatePresence>
-            {order
-              .filter((item) => item && item._id)
-              .map((item, index) => {
-                let style;
-                let y;
-                const isActive =
-                  item &&
-                  item._id &&
-                  lastPress &&
-                  item._id === lastPress &&
-                  isPressed;
+          <h2 className="text-2xl m-10">Hudpleie Herre</h2>
+          <div
+            className="flex flex-col items-cente"
+            style={{ minHeight: `${containerHeight}px` }}
+          >
+            <AnimatePresence>
+              {itemsHerre
+                .filter((item) => item && item._id)
+                .map((item, index) => {
+                  let style;
+                  let y;
+                  const isActive =
+                    item &&
+                    item._id &&
+                    lastPress &&
+                    item._id === lastPress &&
+                    isPressed;
 
-                if (isActive) {
-                  [, y] = mouse;
-                  style = {
-                    y: y,
-                    scale: 1.02,
-                  };
-                } else {
-                  y = getYPosition(index);
-                  style = {
-                    y: y,
-                    scale: 1,
-                  };
-                }
+                  if (isActive) {
+                    [, y] = mouse;
+                    style = {
+                      y: y,
+                      scale: 1.02,
+                    };
+                  } else {
+                    y = getYPosition(index);
+                    style = {
+                      y: y,
+                      scale: 1,
+                    };
+                  }
 
-                return (
-                  <motion.div
-                    ref={(el) => {
-                      if (el) {
-                        itemRefs.current.set(item._id, el);
-                      } else {
-                        itemRefs.current.delete(item._id);
-                      }
-                    }}
-                    key={item._id}
-                    initial={{ y: y, scale: 1 }}
-                    animate={style}
-                    onMouseDown={handleMouseDown.bind(null, item._id, [0, y])}
-                    className={`absolute bg-white rounded group w-full shadow-4 hover:bg-[#f3f3f2] transition-colors duration-300 py-1 select-none cursor-grab${
-                      isActive ? "cursor-grabbing" : ""
-                    }`}
-                    style={{
-                      zIndex: item === lastPress ? 99 : index,
-                      width: "calc(100% - 80px)",
-                      marginLeft: "40px",
-                      marginRight: "40px",
-                    }}
-                  >
-                    <div className="grid grid-cols-[auto,1fr,auto,auto] items-center gap-x-4 pl-4 pr-1">
-                      <DragDropIcon className="h-6 w-6 opacity-0 group-hover:opacity-80 transition-opacity duration-300" />
-                      <div className="grid grid-rows-[auto,auto] gap-0">
-                        <div className="truncate">{item.title}</div>
-                        <p className="truncate text-sm opacity-60">
-                          {item.shortDescription}
-                        </p>
+                  return (
+                    <motion.div
+                      ref={(el) => {
+                        if (el) {
+                          itemRefs.current.set(item._id, el);
+                        } else {
+                          itemRefs.current.delete(item._id);
+                        }
+                      }}
+                      key={item._id}
+                      initial={{ y: y, scale: 1 }}
+                      animate={style}
+                      onMouseDown={handleMouseDown.bind(null, item._id, [0, y])}
+                      className={`absolute bg-white rounded group w-full shadow-4 hover:bg-[#f3f3f2] transition-colors duration-300 py-1 select-none cursor-grab${
+                        isActive ? "cursor-grabbing" : ""
+                      }`}
+                      style={{
+                        zIndex: item === lastPress ? 99 : index,
+                        width: "calc(100% - 80px)",
+                        marginLeft: "40px",
+                        marginRight: "40px",
+                      }}
+                    >
+                      <div className="grid grid-cols-[auto,1fr,auto,auto] items-center gap-x-4 pl-4 pr-1">
+                        <DragDropIcon className="h-6 w-6 opacity-0 group-hover:opacity-80 transition-opacity duration-300" />
+                        <div className="grid grid-rows-[auto,auto] gap-0">
+                          <div className="truncate">{item.title}</div>
+                          <p className="truncate text-sm opacity-60">
+                            {item.shortDescription}
+                          </p>
+                        </div>
+                        <h3 className="whitespace-nowrap font-normal">
+                          {item.price} kr
+                        </h3>
+                        <div className="grid grid-rows-2 border-l border-gray-400 ">
+                          <Edit
+                            data-drag-disabled
+                            onClick={() => openEditModal(item)}
+                            className="h-9 w-9 p-1.5 ml-1 scale-[0.9] hover:scale-[1.2] transition-all duration-300 hover:text-yellow-600 cursor-pointer"
+                          />
+                          <Delete
+                            data-drag-disabled
+                            onClick={() => handleDeleteIconClick(item._id)}
+                            className="h-9 w-9 p-1.5 ml-1 hover:scale-[1.3] transition-all duration-300 hover:text-red-600 cursor-pointer"
+                          />
+                        </div>
                       </div>
-                      <h3 className="whitespace-nowrap font-normal">
-                        {item.price} kr
-                      </h3>
-                      <div className="grid grid-rows-2 border-l border-gray-400 ">
-                        <Edit
-                          data-drag-disabled
-                          onClick={() => openEditModal(item)}
-                          className="h-9 w-9 p-1.5 ml-1 scale-[0.9] hover:scale-[1.2] transition-all duration-300 hover:text-yellow-600 cursor-pointer"
-                        />
-                        <Delete
-                          data-drag-disabled
-                          onClick={() => handleDeleteIconClick(item._id)}
-                          className="h-9 w-9 p-1.5 ml-1 hover:scale-[1.3] transition-all duration-300 hover:text-red-600 cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-          </AnimatePresence>
-        )}
+                    </motion.div>
+                  );
+                })}
+            </AnimatePresence>
+          </div>
+        </>
+
+        <div className="flex justify-center items-stretch pb-10">
+          <button
+            onClick={handleSaveChanges}
+            className="bg-slate-900 text-white px-14 py-2 mt-4 rounded uppercase border border-slate-900 hover:bg-white hover:text-slate-900 transition-all duration-300 cursor-pointer focus:outline-none"
+          >
+            Save Changes
+          </button>
+        </div>
+        <WarningFramerModal
+          isOpen={isWarningModalOpen}
+          setIsOpen={setIsWarningModalOpen}
+          onDelete={() => handleDelete(treatmentToDelete)}
+        />
+        <AddTreatmentFramerModal
+          isOpen={isAddTreatmentModalOpen}
+          setIsOpen={setIsAddTreatmentModalOpen}
+          onSubmit={async () => {
+            const updatedTreatments = await fetchTreatments("hudpleie");
+            setTreatments(updatedTreatments);
+            setOrder(updatedTreatments);
+            setIsAddTreatmentModalOpen(false);
+          }}
+        />
+        <EditTreatmentFramerModal
+          isOpen={isEditModalOpen}
+          setIsOpen={setIsEditModalOpen}
+          onSubmit={handleEditTreatment}
+          treatment={selectedTreatment}
+        />
       </div>
-      <div className="flex justify-center items-stretch pb-10">
-        <button
-          onClick={handleSaveChanges}
-          className="bg-slate-900 text-white px-14 py-2 mt-4 rounded uppercase border border-slate-900 hover:bg-white hover:text-slate-900 transition-all duration-300 cursor-pointer focus:outline-none"
-        >
-          Save Changes
-        </button>
-      </div>
-      <WarningFramerModal
-        isOpen={isWarningModalOpen}
-        setIsOpen={setIsWarningModalOpen}
-        onDelete={() => handleDelete(treatmentToDelete)}
-      />
-      <AddTreatmentFramerModal
-        isOpen={isAddTreatmentModalOpen}
-        setIsOpen={setIsAddTreatmentModalOpen}
-        onSubmit={async () => {
-          const updatedTreatments = await fetchTreatments("hudpleie");
-          setTreatments(updatedTreatments);
-          setOrder(updatedTreatments);
-          setIsAddTreatmentModalOpen(false);
-        }}
-      />
-      <EditTreatmentFramerModal
-        isOpen={isEditModalOpen}
-        setIsOpen={setIsEditModalOpen}
-        onSubmit={handleEditTreatment}
-        treatment={selectedTreatment}
-      />
     </div>
   );
 }
