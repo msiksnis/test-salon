@@ -17,7 +17,10 @@ export default function WarningFramerModal({ isOpen, setIsOpen, onDelete }) {
               className="fixed inset-0 transition-opacity"
               aria-hidden="true"
             >
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+              <div
+                className="absolute inset-0 bg-gray-500 opacity-75"
+                onClick={() => setIsOpen(false)}
+              ></div>
             </div>
 
             <motion.div
@@ -51,7 +54,7 @@ export default function WarningFramerModal({ isOpen, setIsOpen, onDelete }) {
               </span>
 
               <div
-                className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                className="inline-block align-bottom bg-white rounded text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-headline"
@@ -79,41 +82,38 @@ export default function WarningFramerModal({ isOpen, setIsOpen, onDelete }) {
                       <Dialog.Title
                         as="h3"
                         className="text-lg leading-6 font-medium text-gray-900"
-                        id="modal-headline"
+                        id="modal-headline uppercase"
                       >
-                        Deactivate account
+                        Delete this treatment
                       </Dialog.Title>
                       <div className="mt-2">
                         <Dialog.Description
                           as="p"
                           className="text-sm text-gray-500"
                         >
-                          Are you sure you want to deactivate your account? All
-                          of your data will be permanently removed. This action
-                          cannot be undone.
+                          Are you sure you want to delete this treatment? This
+                          action cannot be undone.
                         </Dialog.Description>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <div className="bg-gray-50 px-4 py-3 space-x-2 flex">
                   <button
-                    type="button"
                     tabIndex={0}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    className="w-full inline-flex justify-center rounded border border-gray-300 shadow-sm px-4 py-2 bg-white text-slate-900 hover:bg-gray-50 focus:outline-none transition-all duration-300"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    tabIndex={0}
+                    className="w-full inline-flex justify-center rounded border border-transparent shadow-sm px-4 py-2 bg-red-600 text-white hover:bg-red-700 focus:outline-none transition-all duration-300"
                     onClick={() => {
                       onDelete();
                     }}
                   >
                     Delete
-                  </button>
-                  <button
-                    type="button"
-                    tabIndex={0}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Cancel
                   </button>
                 </div>
               </div>

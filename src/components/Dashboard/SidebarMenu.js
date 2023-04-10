@@ -3,7 +3,7 @@ import Image from "next/image";
 
 const menuItems = [
   { text: "Handpleie", shortText: "HA..." },
-  { text: "Futpleie", shortText: "FU..." },
+  { text: "Fotpleie", shortText: "FO..." },
   { text: "Hudpleie", shortText: "HU..." },
   { text: "Vipper & Bryn", shortText: "VB..." },
   { text: "Gavekort", shortText: "GK..." },
@@ -17,7 +17,7 @@ export default function SidebarMenu({
 }) {
   return (
     <div
-      className={`h-screen fixed pt-24 left-0 top-0 bottom-0 bg-white text-slate-900 border-r border-slate-900 transition-all duration-300 ${
+      className={`h-screen fixed pt-24 left-0 top-0 bottom-0 bg-[#f3f3f2] text-slate-900 border-r border-slate-900 transition-all duration-300 ${
         isExpanded ? "w-64" : "w-20"
       }`}
     >

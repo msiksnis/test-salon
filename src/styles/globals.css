@@ -8,7 +8,6 @@
   }
 }
 
-/* styles/globals.css */
 @keyframes pulse {
   0%,
   100% {
@@ -23,7 +22,7 @@
 
 .pilar {
   animation: pulse 1.2s ease-in-out infinite;
-  transform-origin: bottom; /* Make sure the pillars scale from the bottom */
+  transform-origin: bottom;
 }
 
 .pilar:nth-child(2) {
@@ -51,4 +50,38 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.bar-loading {
+  display: block;
+  width: 200px;
+  height: 8px;
+  border-radius: 30px;
+  background-color: #dddddd;
+  position: relative;
+}
+
+.bar-loading::before {
+  content: "";
+  display: block;
+  width: 0;
+  height: 100%;
+  background-color: #c1c1c1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 30px;
+  animation: loading 1s linear infinite;
+}
+
+@keyframes loading {
+  50% {
+    width: 100%;
+  }
+
+  100% {
+    width: 0;
+    right: 0;
+    left: unset;
+  }
 }

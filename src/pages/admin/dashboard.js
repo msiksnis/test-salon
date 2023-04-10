@@ -9,11 +9,13 @@ import { useState, useEffect } from "react";
 import SidebarMenu from "../../components/Dashboard/SidebarMenu";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import BarLoading from "../../components/Loaders/BarLoading";
 
 function DashboardPage() {
   const [selectedMenuItem, setSelectedMenuItem] = useState("");
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [hudpleieData, setHudpleieData] = useState([]);
+  const [fotpleieData, setFotpleieData] = useState([]);
 
   const handleMenuItemClick = (menuItem) => {
     const componentName = menuItem.replace(/\s+/g, ""); // Removes spaces from the menuItem
@@ -35,6 +37,17 @@ function DashboardPage() {
     fetchHudpleieData();
   }, []);
 
+  useEffect(() => {
+    const fetchFotpleieData = async () => {
+      const data = await fetchTreatments("fotpleie");
+      console.log("Fotpleie data:", data);
+
+      setFotpleieData(data);
+    };
+
+    fetchFotpleieData();
+  }, []);
+
   const TreatmentComponent = dynamic(
     () =>
       import(`../../components/Dashboard/Treatments/${selectedMenuItem}`).then(
@@ -43,12 +56,22 @@ function DashboardPage() {
           Component.displayName = selectedMenuItem;
           return function WrappedComponent(props) {
             WrappedComponent.displayName = `Wrapped${selectedMenuItem}`;
-            return <Component {...props} hudpleie={hudpleieData} />;
+            return (
+              <Component
+                {...props}
+                hudpleie={hudpleieData}
+                fotpleie={fotpleieData}
+              />
+            );
           };
         }
       ),
     {
-      loading: () => <p>Loading...</p>,
+      loading: () => (
+        <div className="flex justify-center items-center">
+          <BarLoading />
+        </div>
+      ),
       ssr: false,
     }
   );
@@ -60,32 +83,34 @@ function DashboardPage() {
         <meta name="description" content="" />
       </Head>
       <DndProvider backend={HTML5Backend}>
-        <Layout>
-          <SidebarMenu
-            isExpanded={isSidebarExpanded}
-            toggleMenu={toggleSidebar}
-            onMenuItemClick={handleMenuItemClick}
-          />
-          <div
-            className={`transition-all duration-300 ${
-              isSidebarExpanded ? "ml-64" : "ml-20"
-            }`}
-          >
-            {selectedMenuItem ? (
-              <TreatmentComponent hudpleie={hudpleieData} />
-            ) : (
-              <div className="p-10 min-h-screen flex items-center justify-center">
-                <Image
+        <div className="md:pt-32 bg-[#f3f3f2]">
+          <Layout>
+            <SidebarMenu
+              isExpanded={isSidebarExpanded}
+              toggleMenu={toggleSidebar}
+              onMenuItemClick={handleMenuItemClick}
+            />
+            <div
+              className={`transition-all duration-300 ${
+                isSidebarExpanded ? "ml-64" : "ml-20"
+              }`}
+            >
+              {selectedMenuItem ? (
+                <TreatmentComponent hudpleie={hudpleieData} />
+              ) : (
+                <div className="">
+                  {/* <Image
                   src="/favicon.ico"
                   width={150}
                   height={150}
                   alt="placeholder"
                   className="object-cover mr-10 md:mr-32 mb-32"
-                />
-              </div>
-            )}
-          </div>
-        </Layout>
+                /> */}
+                </div>
+              )}
+            </div>
+          </Layout>
+        </div>
       </DndProvider>
     </>
   );
