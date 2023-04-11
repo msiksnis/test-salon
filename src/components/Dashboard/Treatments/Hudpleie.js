@@ -12,7 +12,6 @@ import EditTreatmentFramerModal from "../../Modals/EditTreatmentFramerModal";
 import BarLoading from "../../Loaders/BarLoading";
 
 const gap = 30;
-const clamp = (n, min, max) => Math.max(Math.min(n, max), min);
 
 export default function DraggableFramerHudpleie() {
   const [mouse, setMouse] = useState([0, 0]);
@@ -28,8 +27,6 @@ export default function DraggableFramerHudpleie() {
   const [treatments, setTreatments] = useState([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTreatment, setSelectedTreatment] = useState(null);
-  const [orderDame, setOrderDame] = useState([]);
-  const [orderHerre, setOrderHerre] = useState([]);
 
   const itemRefs = useRef(new Map());
 
@@ -62,19 +59,6 @@ export default function DraggableFramerHudpleie() {
   useEffect(() => {
     setContainerHeight(calculateContainerHeight());
   }, [order]);
-
-  const getTotalHeight = () => {
-    let totalHeight = 0;
-    const itemIds = Array.from(itemRefs.current.keys());
-    for (let i = 0; i < itemIds.length; i++) {
-      const id = itemIds[i];
-      const item = itemRefs.current.get(id);
-      if (item) {
-        totalHeight += item.offsetHeight;
-      }
-    }
-    return totalHeight;
-  };
 
   const handleMouseDown = useCallback(
     (key, [pressX, pressY], { pageX, pageY, target }) => {
