@@ -255,8 +255,8 @@ export default function EditTreatmentFramerModal({
                       <label className="inline-flex items-center cursor-pointer">
                         <input
                           type="radio"
-                          value="håndpleie"
-                          checked={category === "håndpleie"}
+                          value="handpleie"
+                          checked={category === "handpleie"}
                           onChange={handleCategoryChange}
                         />
                         <span className="ml-2">Håndpleie</span>
