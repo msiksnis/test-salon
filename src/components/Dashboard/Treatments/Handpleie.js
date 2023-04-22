@@ -1,6 +1,6 @@
-// Hudpleie.js
+// Handpleie.js
 import DraggableTreatmentList from "../DraggableTreatmentList";
 
 export default function Handpleie() {
-  return <DraggableTreatmentList category="hudpleie" separateByGender />;
+  return <DraggableTreatmentList category="handpleie" separateByGender />;
 }

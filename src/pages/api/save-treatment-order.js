@@ -7,13 +7,19 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { treatments } = req.body;
+  const { treatmentsDame, treatmentsHerre } = req.body;
 
   try {
     const sanityClient = await createSanityClient();
     const transaction = sanityClient.transaction();
 
-    treatments.forEach((treatment, index) => {
+    // Update the order for treatmentsDame
+    treatmentsDame.forEach((treatment, index) => {
+      transaction.patch(treatment._id, { set: { order: index } });
+    });
+
+    // Update the order for treatmentsHerre
+    treatmentsHerre.forEach((treatment, index) => {
       transaction.patch(treatment._id, { set: { order: index } });
     });
 

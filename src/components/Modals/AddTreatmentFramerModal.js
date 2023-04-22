@@ -205,7 +205,6 @@ export default function AddTreatmentFramerModal({
                     onChange={handleShortDescriptionChange}
                   />
                   <div className="border p-4 rounded mb-4">
-                    {/* <p className="mb-2">Gender</p> */}
                     <div className="flex flex-row justify-between">
                       <label className="inline-flex items-center cursor-pointer">
                         <input
@@ -251,8 +250,8 @@ export default function AddTreatmentFramerModal({
                       <label className="inline-flex items-center cursor-pointer">
                         <input
                           type="radio"
-                          value="håndpleie"
-                          checked={category === "håndpleie"}
+                          value="handpleie"
+                          checked={category === "handpleie"}
                           onChange={handleCategoryChange}
                         />
                         <span className="ml-2">Håndpleie</span>
