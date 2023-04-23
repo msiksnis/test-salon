@@ -17,7 +17,7 @@ export default function TreatmentList({
   mouse,
 }) {
   const getYPosition = (index) => {
-    return index * 100;
+    return index * 0;
   };
 
   return (
@@ -70,7 +70,7 @@ export default function TreatmentList({
                   initial={{ y: y, scale: 1 }}
                   animate={style}
                   onMouseDown={onMouseDown.bind(null, item._id, [0, y])}
-                  className={`absolute bg-white rounded group w-full shadow-4 hover:bg-[#f3f3f2] transition-colors duration-300 py-1 select-none cursor-grab${
+                  className={`mb-4 bg-white rounded group w-full shadow-4 hover:bg-[#f3f3f2] transition-colors duration-300 py-1 select-none cursor-grab${
                     isActive ? "cursor-grabbing" : ""
                   }`}
                   style={{

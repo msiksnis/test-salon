@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { fetchTreatments } from "../../../utils/fetchTreatments";
 import { GoPlus } from "react-icons/go";
 import { toast } from "react-toastify";
@@ -6,6 +12,11 @@ import WarningFramerModal from "../Modals/WarningFramerModal";
 import AddTreatmentFramerModal from "../Modals/AddTreatmentFramerModal";
 import EditTreatmentFramerModal from "../Modals/EditTreatmentFramerModal";
 import TreatmentList from "./TreatmentList";
+import {
+  handleDelete,
+  handleSaveChanges,
+  handleEditTreatment,
+} from "./treatmentHandlers";
 
 const gap = 0;
 
@@ -16,7 +27,6 @@ export default function DraggableTreatmentList({ category }) {
   const [isPressed, setIsPressed] = useState(false);
   const [order, setOrder] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [containerHeight, setContainerHeight] = useState(0);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [isAddTreatmentModalOpen, setIsAddTreatmentModalOpen] = useState(false);
   const [treatmentToDelete, setTreatmentToDelete] = useState(null);
@@ -24,8 +34,9 @@ export default function DraggableTreatmentList({ category }) {
   const [selectedTreatment, setSelectedTreatment] = useState(null);
   const [itemsDame, setItemsDame] = useState([]);
   const [itemsHerre, setItemsHerre] = useState([]);
-
-  const itemRefs = useRef(new Map());
+  const [containerHeightDame, setContainerHeightDame] = useState(0);
+  const [containerHeightHerre, setContainerHeightHerre] = useState(0);
+  const [combinedContainerHeight, setCombinedContainerHeight] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
@@ -45,33 +56,25 @@ export default function DraggableTreatmentList({ category }) {
     fetchData();
   }, [category]);
 
-  const calculateContainerHeight = () => {
-    let totalHeight = 0;
-    const itemIds = Array.from(itemRefs.current.keys());
-    for (let i = 0; i < itemIds.length; i++) {
-      const id = itemIds[i];
-      const item = itemRefs.current.get(id);
-      if (item) {
-        totalHeight += item.offsetHeight + gap;
+  const itemRefs = useRef(new Map());
+
+  const treatmentListRefDame = useRef(null);
+  const treatmentListRefHerre = useRef(null);
+
+  useLayoutEffect(() => {
+    const calculateContainerHeight = (treatmentListRef) => {
+      if (!treatmentListRef.current) return 0;
+      const treatments = treatmentListRef.current.children;
+      let totalHeight = 0;
+      for (let i = 0; i < treatments.length; i++) {
+        totalHeight += treatments[i].offsetHeight + gap;
       }
-    }
-    return totalHeight;
-  };
-
-  useEffect(() => {
-    setContainerHeight(calculateContainerHeight());
-  }, [order]);
-
-  useEffect(() => {
-    const updateContainerHeight = () => {
-      setContainerHeight(calculateContainerHeight());
+      return totalHeight;
     };
 
-    window.addEventListener("resize", updateContainerHeight);
-    return () => {
-      window.removeEventListener("resize", updateContainerHeight);
-    };
-  }, [calculateContainerHeight]);
+    setContainerHeightDame(calculateContainerHeight(treatmentListRefDame));
+    setContainerHeightHerre(calculateContainerHeight(treatmentListRefHerre));
+  }, [itemsDame, itemsHerre]);
 
   const handleMouseDown = useCallback(
     (key, [pressX, pressY], { pageX, pageY, target }) => {
@@ -174,29 +177,8 @@ export default function DraggableTreatmentList({ category }) {
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  const handleSaveChanges = async () => {
-    try {
-      const response = await fetch("/api/save-treatment-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          treatmentsDame: itemsDame,
-          treatmentsHerre: itemsHerre,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success("Treatments order saved successfully");
-      } else {
-        toast.error("Error saving treatments order: " + data.message);
-      }
-    } catch (error) {
-      toast.error("Error saving treatments order: " + error.message);
-    }
+  const onSaveChanges = async () => {
+    await handleSaveChanges(itemsDame, itemsHerre, toast);
   };
 
   const handleDeleteIconClick = (id) => {
@@ -204,36 +186,19 @@ export default function DraggableTreatmentList({ category }) {
     setIsWarningModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    try {
-      const response = await fetch(`/api/delete-treatment/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("Treatment deleted successfully");
-        // Remove treatment from the order state
-        setOrder(order.filter((item) => item._id !== id));
-        // Find the gender of the deleted treatment
-        const deletedTreatmentGender = order.find(
-          (item) => item._id === id
-        ).gender;
-
-        // Update itemsDame or itemsHerre based on the deleted treatment's gender
-        if (deletedTreatmentGender === "dame") {
-          setItemsDame(itemsDame.filter((item) => item._id !== id));
-        } else {
-          setItemsHerre(itemsHerre.filter((item) => item._id !== id));
-        }
-      } else {
-        toast.error("Error deleting treatment");
-      }
-    } catch (error) {
-      toast.error("Error deleting treatment: " + error.message);
-    }
-
-    setIsWarningModalOpen(false);
-    setTreatmentToDelete(null);
+  const onDelete = async (id) => {
+    await handleDelete(
+      id,
+      order,
+      itemsDame,
+      itemsHerre,
+      setOrder,
+      setItemsDame,
+      setItemsHerre,
+      setIsWarningModalOpen,
+      setTreatmentToDelete,
+      toast
+    );
   };
 
   const openEditModal = (treatment) => {
@@ -241,40 +206,22 @@ export default function DraggableTreatmentList({ category }) {
     setSelectedTreatment(treatment);
   };
 
-  const handleEditTreatment = async (id, newTreatmentData) => {
-    try {
-      const response = await fetch(`/api/edit-treatment/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newTreatmentData),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.message);
-      }
-
-      // Fetch updated treatments after successful edit
-      const updatedTreatments = await fetchTreatments(category);
-      setOrder(updatedTreatments); // Update the order state directly
-      setItemsDame(
-        updatedTreatments.filter((treatment) => treatment.gender === "dame")
-      );
-      setItemsHerre(
-        updatedTreatments.filter((treatment) => treatment.gender === "herre")
-      );
-
-      setIsEditModalOpen(false);
-    } catch (error) {
-      toast.error(error.message || "Failed to update treatment");
-    }
+  const onEditTreatment = async (id, newTreatmentData) => {
+    await handleEditTreatment(
+      id,
+      newTreatmentData,
+      category,
+      fetchTreatments,
+      setOrder,
+      setItemsDame,
+      setItemsHerre,
+      setIsEditModalOpen,
+      toast
+    );
   };
 
   return (
-    <div className="relative md:mr-6 md:ml-14 md:mb-10 shadow-box rounded-md bg-white">
+    <div className="md:mr-6 md:ml-14 md:mb-10 shadow-box rounded-md bg-white flex flex-col">
       <div className="flex justify-between items-center mr-10">
         <h1 className="text-2xl p-10 text-gray-700 md:text-4xl capitalize">
           {category}
@@ -287,42 +234,50 @@ export default function DraggableTreatmentList({ category }) {
         </button>
       </div>
 
-      <div className="">
-        <>
+      <div className="flex-grow">
+        <div
+          className="mb-10"
+          style={{ border: "2px solid red", margin: "10px" }}
+        >
           <h2 className="text-2xl m-10 capitalize">{category} Dame</h2>
           <TreatmentList
+            ref={treatmentListRefDame}
             treatments={itemsDame}
             onEdit={openEditModal}
             onDelete={handleDeleteIconClick}
             onMouseDown={handleMouseDown}
-            itemRefs={itemRefs}
-            containerHeight={containerHeight}
+            containerHeight={containerHeightDame}
             loading={loading}
             lastPress={lastPress}
             isPressed={isPressed}
             mouse={mouse}
+            itemRefs={itemRefs}
           />
-        </>
-        <div>
-          <h2 className="text-2xl m-10 capitalize">{category} Herre</h2>
+        </div>
+        <div
+          className="my-10"
+          style={{ border: "2px solid blue", margin: "10px" }}
+        >
+          <h2 className="text-2xl m-10 ml-0 capitalize">{category} Herre</h2>
           <TreatmentList
+            ref={treatmentListRefHerre}
             treatments={itemsHerre}
             onEdit={openEditModal}
             onDelete={handleDeleteIconClick}
             onMouseDown={handleMouseDown}
-            itemRefs={itemRefs}
-            containerHeight={containerHeight}
+            containerHeight={containerHeightHerre}
             loading={loading}
             lastPress={lastPress}
             isPressed={isPressed}
             mouse={mouse}
+            itemRefs={itemRefs}
           />
         </div>
       </div>
 
       <div className="flex justify-center items-stretch pb-10">
         <button
-          onClick={handleSaveChanges}
+          onClick={onSaveChanges}
           className="bg-slate-900 text-white px-14 py-2 mt-4 rounded uppercase border border-slate-900 hover:bg-white hover:text-slate-900 transition-all duration-300 cursor-pointer focus:outline-none"
         >
           Save Changes
@@ -332,7 +287,7 @@ export default function DraggableTreatmentList({ category }) {
       <WarningFramerModal
         isOpen={isWarningModalOpen}
         setIsOpen={setIsWarningModalOpen}
-        onDelete={() => handleDelete(treatmentToDelete)}
+        onDelete={() => onDelete(treatmentToDelete)}
       />
       <AddTreatmentFramerModal
         isOpen={isAddTreatmentModalOpen}
@@ -354,7 +309,7 @@ export default function DraggableTreatmentList({ category }) {
       <EditTreatmentFramerModal
         isOpen={isEditModalOpen}
         setIsOpen={setIsEditModalOpen}
-        onSubmit={handleEditTreatment}
+        onSubmit={onEditTreatment}
         treatment={selectedTreatment}
       />
     </div>
