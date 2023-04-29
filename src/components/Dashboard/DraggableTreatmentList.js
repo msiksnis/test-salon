@@ -1,10 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useLayoutEffect,
-} from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchTreatments } from "../../../utils/fetchTreatments";
 import { GoPlus } from "react-icons/go";
 import { toast } from "react-toastify";
@@ -17,12 +11,13 @@ import {
   handleSaveChanges,
   handleEditTreatment,
 } from "./treatmentHandlers";
+import { convertCategoryText } from "./textConversion";
 
-const gap = 0;
+const gap = 10;
 
 export default function DraggableTreatmentList({ category }) {
-  const [mouse, setMouse] = useState([0, 0]);
-  const [delta, setDelta] = useState([0, 0]);
+  const [mouse, setMouse] = useState([]);
+  const [delta, setDelta] = useState([]);
   const [lastPress, setLastPress] = useState(null);
   const [isPressed, setIsPressed] = useState(false);
   const [order, setOrder] = useState([]);
@@ -34,9 +29,8 @@ export default function DraggableTreatmentList({ category }) {
   const [selectedTreatment, setSelectedTreatment] = useState(null);
   const [itemsDame, setItemsDame] = useState([]);
   const [itemsHerre, setItemsHerre] = useState([]);
-  const [containerHeightDame, setContainerHeightDame] = useState(0);
-  const [containerHeightHerre, setContainerHeightHerre] = useState(0);
-  const [combinedContainerHeight, setCombinedContainerHeight] = useState(0);
+  const [containerHeightDame, setContainerHeightDame] = useState();
+  const [containerHeightHerre, setContainerHeightHerre] = useState();
 
   useEffect(() => {
     async function fetchData() {
@@ -54,26 +48,28 @@ export default function DraggableTreatmentList({ category }) {
     }
 
     fetchData();
-  }, [category]);
+  }, []);
 
   const itemRefs = useRef(new Map());
 
   const treatmentListRefDame = useRef(null);
   const treatmentListRefHerre = useRef(null);
 
-  useLayoutEffect(() => {
-    const calculateContainerHeight = (treatmentListRef) => {
-      if (!treatmentListRef.current) return 0;
-      const treatments = treatmentListRef.current.children;
-      let totalHeight = 0;
-      for (let i = 0; i < treatments.length; i++) {
-        totalHeight += treatments[i].offsetHeight + gap;
-      }
-      return totalHeight;
-    };
+  const calculateContainerHeight = () => {
+    const itemHeight = 90;
+    const itemMargin = 10;
 
-    setContainerHeightDame(calculateContainerHeight(treatmentListRefDame));
-    setContainerHeightHerre(calculateContainerHeight(treatmentListRefHerre));
+    // Calculate the total height of items for each gender, including the margin
+    const totalHeightDame = itemsDame.length * (itemHeight + itemMargin);
+    const totalHeightHerre = itemsHerre.length * (itemHeight + itemMargin);
+
+    // Set the container heights
+    setContainerHeightDame(totalHeightDame);
+    setContainerHeightHerre(totalHeightHerre);
+  };
+
+  useEffect(() => {
+    calculateContainerHeight();
   }, [itemsDame, itemsHerre]);
 
   const handleMouseDown = useCallback(
@@ -221,10 +217,10 @@ export default function DraggableTreatmentList({ category }) {
   };
 
   return (
-    <div className="md:mr-6 md:ml-14 md:mb-10 shadow-box rounded-md bg-white flex flex-col">
+    <div className="relative md:mr-6 md:ml-14 md:mb-10 shadow-box rounded-md bg-white flex flex-col">
       <div className="flex justify-between items-center mr-10">
         <h1 className="text-2xl p-10 text-gray-700 md:text-4xl capitalize">
-          {category}
+          {convertCategoryText(category)}
         </h1>
         <button
           className="flex items-center uppercase border border-slate-900 rounded px-10 py-2 bg-slate-900 text-white hover:bg-white hover:text-slate-900 transition-all duration-300 shadow focus:outline-none"
@@ -234,45 +230,47 @@ export default function DraggableTreatmentList({ category }) {
         </button>
       </div>
 
-      <div className="flex-grow">
-        <div
-          className="mb-10"
-          style={{ border: "2px solid red", margin: "10px" }}
-        >
-          <h2 className="text-2xl m-10 capitalize">{category} Dame</h2>
-          <TreatmentList
-            ref={treatmentListRefDame}
-            treatments={itemsDame}
-            onEdit={openEditModal}
-            onDelete={handleDeleteIconClick}
-            onMouseDown={handleMouseDown}
-            containerHeight={containerHeightDame}
-            loading={loading}
-            lastPress={lastPress}
-            isPressed={isPressed}
-            mouse={mouse}
-            itemRefs={itemRefs}
-          />
-        </div>
-        <div
-          className="my-10"
-          style={{ border: "2px solid blue", margin: "10px" }}
-        >
-          <h2 className="text-2xl m-10 ml-0 capitalize">{category} Herre</h2>
-          <TreatmentList
-            ref={treatmentListRefHerre}
-            treatments={itemsHerre}
-            onEdit={openEditModal}
-            onDelete={handleDeleteIconClick}
-            onMouseDown={handleMouseDown}
-            containerHeight={containerHeightHerre}
-            loading={loading}
-            lastPress={lastPress}
-            isPressed={isPressed}
-            mouse={mouse}
-            itemRefs={itemRefs}
-          />
-        </div>
+      <h2 className="text-2xl m-10 capitalize">
+        {convertCategoryText(category)} Dame
+      </h2>
+      <div className="mb-10" style={{ height: `${containerHeightDame}px` }}>
+        <TreatmentList
+          ref={treatmentListRefDame}
+          treatments={itemsDame}
+          onEdit={openEditModal}
+          onDelete={handleDeleteIconClick}
+          onMouseDown={handleMouseDown}
+          containerHeight={containerHeightDame}
+          loading={loading}
+          lastPress={lastPress}
+          isPressed={isPressed}
+          mouse={mouse}
+          itemRefs={itemRefs}
+          getYPosition={getYPosition}
+        />
+      </div>
+
+      <h2 className="text-2xl mb-10 ml-10 capitalize">
+        {convertCategoryText(category)} Herre
+      </h2>
+      <div
+        className="herre-treatment-container"
+        style={{ height: `${containerHeightHerre}px` }}
+      >
+        <TreatmentList
+          ref={treatmentListRefHerre}
+          treatments={itemsHerre}
+          onEdit={openEditModal}
+          onDelete={handleDeleteIconClick}
+          containerHeight={containerHeightHerre}
+          onMouseDown={handleMouseDown}
+          loading={loading}
+          lastPress={lastPress}
+          isPressed={isPressed}
+          mouse={mouse}
+          itemRefs={itemRefs}
+          getYPosition={getYPosition}
+        />
       </div>
 
       <div className="flex justify-center items-stretch pb-10">
@@ -280,7 +278,7 @@ export default function DraggableTreatmentList({ category }) {
           onClick={onSaveChanges}
           className="bg-slate-900 text-white px-14 py-2 mt-4 rounded uppercase border border-slate-900 hover:bg-white hover:text-slate-900 transition-all duration-300 cursor-pointer focus:outline-none"
         >
-          Save Changes
+          Save Order Changes
         </button>
       </div>
 

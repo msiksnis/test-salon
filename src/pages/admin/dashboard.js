@@ -6,6 +6,18 @@ import { useState } from "react";
 import SidebarMenu from "../../components/Dashboard/SidebarMenu";
 import BarLoading from "../../components/Loaders/BarLoading";
 
+const TreatmentComponent = dynamic(
+  () => import("../../components/Dashboard/DraggableTreatmentList"),
+  {
+    loading: () => (
+      <div className="flex justify-center items-center">
+        <BarLoading />
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
 function DashboardPage() {
   const [selectedMenuItem, setSelectedMenuItem] = useState("");
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -18,18 +30,6 @@ function DashboardPage() {
   const toggleSidebar = () => {
     setIsSidebarExpanded(!isSidebarExpanded);
   };
-
-  const TreatmentComponent = dynamic(
-    () => import("../../components/Dashboard/DraggableTreatmentList"),
-    {
-      loading: () => (
-        <div className="flex justify-center items-center">
-          <BarLoading />
-        </div>
-      ),
-      ssr: false,
-    }
-  );
 
   return (
     <>
@@ -50,9 +50,12 @@ function DashboardPage() {
             }`}
           >
             {selectedMenuItem ? (
-              <TreatmentComponent category={selectedMenuItem.toLowerCase()} />
+              <TreatmentComponent
+                key={selectedMenuItem.toLowerCase()}
+                category={selectedMenuItem.toLowerCase()}
+              />
             ) : (
-              <div className="">
+              <>
                 {/* <Image
                   src="/favicon.ico"
                   width={150}
@@ -60,7 +63,7 @@ function DashboardPage() {
                   alt="placeholder"
                   className="object-cover mr-10 md:mr-32 mb-32"
                 /> */}
-              </div>
+              </>
             )}
           </div>
         </Layout>

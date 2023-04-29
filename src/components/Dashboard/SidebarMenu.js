@@ -1,5 +1,7 @@
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
+import { useState } from "react";
+import { convertMenuItemText } from "./textConversion";
 
 const menuItems = [
   { text: "Handpleie", icon: "/icons/handpleie.svg" },
@@ -15,6 +17,8 @@ export default function SidebarMenu({
   toggleMenu,
   onMenuItemClick,
 }) {
+  const [activeMenuItem, setActiveMenuItem] = useState("");
+
   return (
     <div
       className={`fixed m-6 mt-[6.5rem] px-2 py-4 left-0 top-0 bottom-0 bg-white rounded-md text-slate-900 shadow-box transition-width duration-300 overflow-hidden ${
@@ -53,8 +57,13 @@ export default function SidebarMenu({
         {menuItems.map(({ text, icon }) => (
           <div
             key={text}
-            onClick={() => onMenuItemClick(text)}
-            className="flex items-center cursor-pointer hover:bg-slate-100 transition-all duration-300"
+            onClick={() => {
+              onMenuItemClick(text);
+              setActiveMenuItem(text);
+            }}
+            className={`flex items-center cursor-pointer hover:bg-slate-100 transition-all duration-300 ${
+              activeMenuItem === text ? "bg-slate-100" : ""
+            }`}
           >
             <div className="relative flex items-center space-x-4 ml-1">
               <Image
@@ -65,7 +74,7 @@ export default function SidebarMenu({
                 className="bg-slate-100 rounded-full p-1.5"
               />
               <div className="absolute left-12 w-48 overflow-hidden">
-                {text}
+                {convertMenuItemText(text)}
               </div>
             </div>
           </div>

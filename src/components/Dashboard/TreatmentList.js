@@ -15,16 +15,10 @@ export default function TreatmentList({
   lastPress,
   isPressed,
   mouse,
+  getYPosition,
 }) {
-  const getYPosition = (index) => {
-    return index * 0;
-  };
-
   return (
-    <div
-      className="flex flex-col items-center"
-      style={{ minHeight: `${containerHeight}px` }}
-    >
+    <div className="flex flex-col items-center">
       {loading ? (
         <div className="flex justify-center items-center h-full">
           <BarLoading />
@@ -70,7 +64,7 @@ export default function TreatmentList({
                   initial={{ y: y, scale: 1 }}
                   animate={style}
                   onMouseDown={onMouseDown.bind(null, item._id, [0, y])}
-                  className={`mb-4 bg-white rounded group w-full shadow-4 hover:bg-[#f3f3f2] transition-colors duration-300 py-1 select-none cursor-grab${
+                  className={`absolute bg-white group w-full shadow-4 hover:bg-[#f3f3f2] transition-colors duration-300 py-1 select-none cursor-grab${
                     isActive ? "cursor-grabbing" : ""
                   }`}
                   style={{
